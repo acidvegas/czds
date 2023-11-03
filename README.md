@@ -24,6 +24,11 @@ python czds.py [--username <username> --password <password>] [--concurrency <int
 ./czds
 ```
 
+## Respects
+While ICANN does have an official [czds-api-client-python](https://github.com/icann/czds-api-client-python) repository, I rewrote it from scratch to be more streamline & included a POSIX version for portability.
+
+Either way, big props to ICANN for allowing me to use the CZDS for research purposes!
+
 ___
 
 ###### Mirrors
