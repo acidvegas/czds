@@ -10,6 +10,7 @@ References:
 import argparse
 import concurrent.futures
 import getpass
+import logging
 import os
 
 try:
@@ -72,9 +73,9 @@ def main(username: str, password: str, concurrency: int):
             url = future_to_url[future]
             try:
                 filepath = future.result()
-                print(f'Completed downloading {url} to file {filepath}')
+                logging.info(f'Completed downloading {url} to file {filepath}')
             except Exception as e:
-                print(f'{url} generated an exception: {e}')
+                logging.error(f'{url} generated an exception: {e}')
 
 
 
@@ -96,6 +97,6 @@ if __name__ == '__main__':
     try:
         main(username, password, args.concurrency)
     except requests.HTTPError as e:
-        print(f'HTTP error occurred: {e.response.status_code} - {e.response.reason}')
+        logging.error(f'HTTP error occurred: {e.response.status_code} - {e.response.reason}')
     except Exception as e:
-        print(f'An error occurred: {e}')
+        logging.error(f'An error occurred: {e}')
