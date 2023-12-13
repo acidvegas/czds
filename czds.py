@@ -13,10 +13,12 @@ import getpass
 import logging
 import os
 
+
 try:
     import requests
 except ImportError:
     raise ImportError('Missing dependency: requests (pip install requests)')
+
 
 def authenticate(username: str, password: str) -> str:
     '''
