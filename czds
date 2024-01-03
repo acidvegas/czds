@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # ICANN API for the Centralized Zones Data Service - developed by acidvegas (https://git.acid.vegas/czds)
 
  # https://czds.icann.org
@@ -6,30 +6,31 @@
 
 # Function to authenticate and get access token
 authenticate() {
-    username="$1"
-    password="$2"
-    # Make an authentication request and inline the URL
-    response=$(curl -s -X POST "https://account-api.icann.org/api/authenticate" \
-        -H "Content-Type: application/json" \
-        -H "Accept: application/json" \
-        -d "{\"username\":\"$username\",\"password\":\"$password\"}")
+	username="$1"
+	password="$2"
+	# Make an authentication request and inline the URL
+	response=$(curl -s -X POST "https://account-api.icann.org/api/authenticate" \
+		-H "Content-Type: application/json" \
+		-H "Accept: application/json" \
+		-d "{\"username\":\"$username\",\"password\":\"$password\"}")
 
-    # Extract and return the access token
-    echo "$response" | grep -o '"accessToken":"[^"]*' | cut -d '"' -f 4
+	# Extract and return the access token
+	echo "$response" | grep -o '"accessToken":"[^"]*' | cut -d '"' -f 4
 }
 
 # Function to download a zone file
 download_zone() {
-    url="$1"
-    token="$2"
-    filename=$(basename "$url")
-    filepath="zonefiles/$filename"
-    # Create output directory if it does not exist
-    mkdir -p "zonefiles"
+	url="$1"
+	token="$2"
+	filename=$(basename "$url")
+	filepath="zonefiles/$filename"
 
-    # Make the GET request and save the response to a file
-    curl -s -o "$filepath" -H "Authorization: Bearer $token" "$url"
-    echo "Downloaded zone file to $filepath"
+	# Create output directory if it does not exist
+	mkdir -p zonefiles
+
+	# Make the GET request and save the response to a file
+	curl -s -o "$filepath" -H "Authorization: Bearer $token" "$url"
+	echo "Downloaded zone file to $filepath"
 }
 
 # Main program starts here
@@ -45,8 +46,8 @@ token=$(authenticate "$username" "$password")
 
 # Check if authentication was successful
 if [ -z "$token" ]; then
-    echo "Authentication failed."
-    exit 1
+	echo "Authentication failed."
+	exit 1
 fi
 
 echo "Fetching zone file links..."
@@ -55,8 +56,8 @@ zone_links=$(curl -s -H "Authorization: Bearer $token" "https://czds-api.icann.o
 
 # Download zone files
 for url in $zone_links; do
-    echo "Downloading $url..."
-    download_zone "$url" "$token"
+	echo "Downloading $url..."
+	download_zone "$url" "$token"
 done
 
 echo "All zone files downloaded."
