@@ -7,7 +7,7 @@ Zone files are updated once every 24 hours, specifically from 00:00 UTC to 06:00
 
 At the time of writing this repository, the CZDS offers access to 1,150 zones in total.
 
-1,079 have been approved, 55 are still pending *(after 3 months)*, 10 have been revoked because the TLDs are longer active, and 6 have been denied.
+1,079 have been approved, 55 are still pending *(after 3 months)*, 10 have been revoked because the TLDs are longer active, and 6 have been denied. Zones that have expired automatically had the expiration extended for me without doing anything, aside from 13 zones that remained expired.
 
 ## Usage
 ### Authentication
