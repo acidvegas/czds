@@ -33,5 +33,4 @@ While ICANN does have an official [czds-api-client-python](https://github.com/ic
 
 ___
 
-###### Mirrors
-[acid.vegas](https://git.acid.vegas/czds) • [GitHub](https://github.com/acidvegas/czds) • [GitLab](https://gitlab.com/acidvegas/czds) • [SuperNETs](https://git.supernets.org/acidvegas/czds)
+###### Mirrors for this repository: [acid.vegas](https://git.acid.vegas/czds) • [SuperNETs](https://git.supernets.org/acidvegas/czds) • [GitHub](https://github.com/acidvegas/czds) • [GitLab](https://gitlab.com/acidvegas/czds) • [Codeberg](https://codeberg.org/acidvegas/czds)
