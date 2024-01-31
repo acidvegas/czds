@@ -1,18 +1,12 @@
 #!/usr/bin/env python
 # ICANN API for the Centralized Zones Data Service - developed by acidvegas (https://git.acid.vegas/czds)
-
-'''
-References:
-	- https://czds.icann.org
-	- https://czds.icann.org/sites/default/files/czds-api-documentation.pdf
-'''
+# Reference: https://czds.icann.org
 
 import argparse
 import concurrent.futures
 import getpass
 import logging
 import os
-
 
 try:
 	import requests
@@ -31,8 +25,10 @@ def authenticate(username: str, password: str) -> str:
 	:param username: ICANN Username
 	:param password: ICANN Password
 	'''
+
 	response = requests.post('https://account-api.icann.org/api/authenticate', json={'username': username, 'password': password})
 	response.raise_for_status()
+
 	return response.json()['accessToken']
 
 
@@ -44,11 +40,13 @@ def download_zone(url: str, token: str, output_directory: str):
 	:param token: ICANN access token
 	:param output_directory: Directory to save the zone file
 	'''
+
 	headers = {'Authorization': f'Bearer {token}'}
 	response = requests.get(url, headers=headers)
 	response.raise_for_status()
 	filename = response.headers.get('Content-Disposition').split('filename=')[-1].strip('"')
 	filepath = os.path.join(output_directory, filename)
+
 	with open(filepath, 'wb') as file:
 		for chunk in response.iter_content(chunk_size=1024):
 			file.write(chunk)
@@ -63,19 +61,24 @@ def main(username: str, password: str, concurrency: int):
 	:param password: ICANN Password
 	:param concurrency: Number of concurrent downloads
 	'''
+
 	token = authenticate(username, password)
 	headers = {'Authorization': f'Bearer {token}'}
-
 	response = requests.get('https://czds-api.icann.org/czds/downloads/links', headers=headers)
 	response.raise_for_status()
 	zone_links = response.json()
 	output_directory = 'zonefiles'
+
 	os.makedirs(output_directory, exist_ok=True)
 
 	with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+
 		future_to_url = {executor.submit(download_zone, url, token, output_directory): url for url in zone_links}
+
 		for future in concurrent.futures.as_completed(future_to_url):
+
 			url = future_to_url[future]
+
 			try:
 				filepath = future.result()
 				logging.info(f'Completed downloading {url} to file {filepath}')
@@ -96,6 +99,7 @@ if __name__ == '__main__':
 
 	if not username:
 		username = input('ICANN Username: ')
+
 	if not password:
 		password = getpass.getpass('ICANN Password: ')
 

@@ -5,9 +5,9 @@ The [ICANN Centralized Zone Data Service](https://czds.icann.org) *(CZDS)* allow
 ## Zone Information
 Zone files are updated once every 24 hours, specifically from 00:00 UTC to 06:00 UTC. Access to these zones is granted in increments, and the total time for approval across all zones may extend to a month or longer. It is typical for more than 90% of requested zones to receive approval. Access to certain zone files may require additional application forms with the TLD organization. Please be aware that access to certain zones is time-bound, expiring at the beginning of the following year, or up to a decade after the initial approval has been confirmed.
 
-At the time of writing this repository, the CZDS offers access to 1,150 zones in total.
+At the time of writing this repository, the CZDS offers access to 1,151 zones in total.
 
-1,079 have been approved, 55 are still pending *(after 3 months)*, 10 have been revoked because the TLDs are longer active, and 6 have been denied. Zones that have expired automatically had the expiration extended for me without doing anything, aside from 13 zones that remained expired.
+1,079 have been approved, 55 are still pending *(after 3 months)*, 10 have been revoked because the TLDs are longer active, and 6 have been denied. Zones that have expired automatically had the expiration extended for me without doing anything, aside from 13 zones that remained expired. I have included a recent [stats file](./stats_2024-01-31.csv) directly from my ICANN account.
 
 ## Usage
 ### Authentication
@@ -29,7 +29,7 @@ python czds.py [--username <username> --password <password>] [--concurrency <int
 ```
 
 ## Respects
-While ICANN does have an official [czds-api-client-python](https://github.com/icann/czds-api-client-python) repository, I rewrote it from scratch to be more streamline & included a POSIX version for portability. Either way, big props to ICANN for allowing me to use the CZDS for research purposes!
+While ICANN does have an official [czds-api-client-python](https://github.com/icann/czds-api-client-python) repository, I rewrote it from scratch to be more streamline & included a POSIX version for portability. There is some [official documentation](https://raw.githubusercontent.com/icann/czds-api-client-java/master/docs/ICANN_CZDS_api.pdf) that was referenced in the creation of the POSIX version. Either way, big props to ICANN for allowing me to use the CZDS for research purposes!
 
 ___
 
