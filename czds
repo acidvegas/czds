@@ -20,16 +20,13 @@ authenticate() {
 download_zone() {
 	url="$1"
 	token="$2"
-	filename=$(basename "$url")
-	tld=$(echo "$filename" | cut -d '.' -f 1)
-	filepath="zonefiles/$tld.txt.gz"
+	tld=$(basename "$url" .zone)
 
-	# Create output directory if it does not exist
-	mkdir -p zonefiles
 
 	# Make the GET request and save the response to a file
-	curl --progress-bar -o "$filepath" -H "Authorization: Bearer $token" "$url"
-	echo "Downloaded zone file to $filepath"
+	echo "Downloading $url..."
+	curl --progress-bar -o zonefiles/$tld.txt.gz -H "Authorization: Bearer $token" "$url"
+	echo "Downloaded zone file to zonefiles/$tld.txt.gz"
 }
 
 # Main program starts here
@@ -53,12 +50,12 @@ echo "Fetching zone file links..."
 # Fetch zone links with inline URL and download zone files
 zone_links=$(curl -s -H "Authorization: Bearer $token" "https://czds-api.icann.org/czds/downloads/links" | grep -o 'https://[^"]*')
 
+# Create output directory if it does not exist
+mkdir -p zonefiles
+
 # Download zone files
 for url in $zone_links; do
-	if [ ! -f $filepath ]; then
-		echo "Downloading $url..."
-		download_zone "$url" "$token"
-	fi
+	download_zone "$url" "$token"
 done
 
 echo "All zone files downloaded."
