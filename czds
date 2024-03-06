@@ -2,60 +2,63 @@
 # ICANN API for the Centralized Zones Data Service - developed by acidvegas (https://git.acid.vegas/czds)
 # Reference: https://czds.icann.org
 
-# Function to authenticate and get access token
-authenticate() {
-	username="$1"
-	password="$2"
-	# Make an authentication request and inline the URL
-	response=$(curl -s -X POST "https://account-api.icann.org/api/authenticate" \
-		-H "Content-Type: application/json" \
-		-H "Accept: application/json" \
-		-d "{\"username\":\"$username\",\"password\":\"$password\"}")
-
-	# Extract and return the access token
-	echo "$response" | grep -o '"accessToken":"[^"]*' | cut -d '"' -f 4
-}
-
-# Function to download a zone file
-download_zone() {
-	url="$1"
-	token="$2"
-	tld=$(basename "$url" .zone)
-
-
-	# Make the GET request and save the response to a file
-	echo "Downloading $url..."
-	curl --progress-bar -o zonefiles/$tld.txt.gz -H "Authorization: Bearer $token" "$url"
-	echo "Downloaded zone file to zonefiles/$tld.txt.gz"
-}
-
 # Main program starts here
 echo "ICANN Zone Data Service Script"
 
-# Get username and password
-username=${CZDS_USER:-$(read -p "ICANN Username: " user && echo "$user")}
-password=${CZDS_PASS:-$(read -sp "ICANN Password: " pass && echo "$pass" && echo)}
+# Define the current date for data organization
+now=$(date +"%Y-%m-%d")
 
-# Authenticate and get token
-echo "Authenticating..."
-token=$(authenticate "$username" "$password")
+# Get username and password (interactive if not set by environment variables)
+username=${CZDS_USER:-$(read -p  "ICANN Username: " user && echo "$user")}
+password=${CZDS_PASS:-$(read -sp "ICANN Password: " pass && echo "$pass")}
+
+echo "Authenticating as $username..."
+
+# Make an authentication request
+response=$(curl -s -X POST "https://account-api.icann.org/api/authenticate" \
+	-H "Content-Type: application/json" \
+	-H "Accept: application/json" \
+	-d "{\"username\":\"$username\",\"password\":\"$password\"}")
+
+# Extract and return the access access_token
+access_token=$(echo "$response" | grep -o '"accessToken":"[^"]*' | cut -d '"' -f 4)
 
 # Check if authentication was successful
-if [ -z "$token" ]; then
-	echo "Authentication failed."
-	exit 1
-fi
+[ -z $access_token ] && echo "error: authentication failed" && exit 1
+
+echo "Authenticated successfully & recieved access_token $access_token"
+
+# Create output directory
+mkdir -p zonefiles/$now
+
+echo "Fetching zone report..."
+
+# Get your zone report stats from the API
+curl --progress-bar -o zonefiles/$now/.stats.csv -H "Authorization: Bearer $access_token" https://czds-api.icann.org/czds/requests/report
+
+echo "Scrubbing report for privacy..."
+
+# Redact username from report for privacy
+sed -i 's/$username/nobody@no.name/g' zonefiles/$now/report.csv
 
 echo "Fetching zone file links..."
-# Fetch zone links with inline URL and download zone files
-zone_links=$(curl -s -H "Authorization: Bearer $token" "https://czds-api.icann.org/czds/downloads/links" | grep -o 'https://[^"]*')
 
-# Create output directory if it does not exist
-mkdir -p zonefiles
+# Get the zone file links from the API
+zone_links=$(curl -s -H "Authorization: Bearer $access_token" https://czds-api.icann.org/czds/downloads/links | grep -o 'https://[^"]*')
 
 # Download zone files
 for url in $zone_links; do
-	download_zone "$url" "$token"
+	tld=$(basename "$url" .zone)
+
+	echo "Downloading $url..."
+
+	# Make the GET request and save the response to a file
+	curl --progress-bar -o zonefiles/$now/$tld.txt.gz -H "Authorization: Bearer $access_token" "$url"
+
+	echo "Downloaded $tld zone file to zonefiles/$tld.txt.gz (extracting...)"
+
+	# Unzip the zone file
+	gunzip zonefiles/$now/$tld.txt.gz
 done
 
 echo "All zone files downloaded."
