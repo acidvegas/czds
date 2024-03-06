@@ -8,6 +8,9 @@ echo "ICANN Zone Data Service Script"
 # Define the current date for data organization
 now=$(date +"%Y-%m-%d")
 
+# Define the output directory
+output="zonefiles/$now"
+
 # Get username and password (interactive if not set by environment variables)
 username=${CZDS_USER:-$(read -p  "ICANN Username: " user && echo "$user")}
 password=${CZDS_PASS:-$(read -sp "ICANN Password: " pass && echo "$pass")}
@@ -29,17 +32,17 @@ access_token=$(echo "$response" | grep -o '"accessToken":"[^"]*' | cut -d '"' -f
 echo "Authenticated successfully & recieved access_token $access_token"
 
 # Create output directory
-mkdir -p zonefiles/$now
+mkdir -p $output
 
 echo "Fetching zone report..."
 
 # Get your zone report stats from the API
-curl --progress-bar -o zonefiles/$now/.stats.csv -H "Authorization: Bearer $access_token" https://czds-api.icann.org/czds/requests/report
+curl --progress-bar -o $output/.stats.csv -H "Authorization: Bearer $access_token" https://czds-api.icann.org/czds/requests/report
 
 echo "Scrubbing report for privacy..."
 
 # Redact username from report for privacy
-sed -i 's/$username/nobody@no.name/g' zonefiles/$now/report.csv
+sed -i 's/$username/nobody@no.name/g' $output/report.csv
 
 echo "Fetching zone file links..."
 
@@ -53,12 +56,12 @@ for url in $zone_links; do
 	echo "Downloading $url..."
 
 	# Make the GET request and save the response to a file
-	curl --progress-bar -o zonefiles/$now/$tld.txt.gz -H "Authorization: Bearer $access_token" "$url"
+	curl --progress-bar -o $output/$tld.txt.gz -H "Authorization: Bearer $access_token" "$url"
 
 	echo "Downloaded $tld zone file to zonefiles/$tld.txt.gz (extracting...)"
 
 	# Unzip the zone file
-	gunzip zonefiles/$now/$tld.txt.gz
+	gunzip $output/$tld.txt.gz
 done
 
 echo "All zone files downloaded."
