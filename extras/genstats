@@ -1,0 +1,18 @@
+#!/bin/sh
+# CZDS Stats Generator from Report - developed by acidvegas (https://git.acid.vegas/czds)
+
+input="$1"
+
+[ ! -f "$input" ] && echo "error: '$input' not found." && exit 1
+
+tail -n +2 "$input" | while IFS=, read -r email tld_name status last_updated reason expire_date; do
+    clean_status=$(echo $status | tr -d '"')
+    case $clean_status in
+        "approved") echo "$email,$tld_name,$status,$last_updated,$reason,$expire_date" >> approved.txt ;;
+        "denied")   echo "$email,$tld_name,$status,$last_updated,$reason,$expire_date" >> denied.txt   ;;
+        "expired")  echo "$email,$tld_name,$status,$last_updated,$reason,$expire_date" >> expired.txt  ;;
+        "pending")  echo "$email,$tld_name,$status,$last_updated,$reason,$expire_date" >> pending.txt  ;;
+        "revoked")  echo "$email,$tld_name,$status,$last_updated,$reason,$expire_date" >> revoked.txt  ;;
+        *)          echo "Unknown status: $clean_status" ;;
+    esac
+done
