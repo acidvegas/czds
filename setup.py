@@ -11,7 +11,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setup(
 	name='czds-api',
-	version='1.0.1',
+	version='1.1.0',
 	author='acidvegas',
 	author_email='acid.vegas@acid.vegas',
 	description='ICANN API for the Centralized Zones Data Service',
@@ -46,4 +46,8 @@ setup(
 			'czds=czds.__main__:main',
 		],
 	},
+	install_requires=[
+		'aiohttp>=3.8.0',
+		'aiofiles>=23.2.1',
+	],
 )
