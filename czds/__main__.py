@@ -12,7 +12,7 @@ import time
 from .client import CZDS
 
 
-def main(username: str, password: str, concurrency: int) -> None:
+def run_czds(username: str, password: str, concurrency: int) -> None:
     '''
     Main function to download all zone files
     
@@ -61,8 +61,8 @@ def main(username: str, password: str, concurrency: int) -> None:
                 logging.error(f'{url} generated an exception: {e}')
 
 
-
-if __name__ == '__main__':
+def main():
+    '''Entry point for the command line interface'''
     parser = argparse.ArgumentParser(description='ICANN API for the Centralized Zones Data Service')
     parser.add_argument('-u', '--username', default=os.getenv('CZDS_USER'), help='ICANN Username')
     parser.add_argument('-p', '--password', default=os.getenv('CZDS_PASS'), help='ICANN Password')
@@ -75,4 +75,8 @@ if __name__ == '__main__':
     username = args.username or input('ICANN Username: ')
     password = args.password or getpass.getpass('ICANN Password: ')
     
-    main(username, password, args.concurrency) 
+    run_czds(username, password, args.concurrency)
+
+
+if __name__ == '__main__':
+    main() 
