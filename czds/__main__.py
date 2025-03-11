@@ -73,6 +73,10 @@ async def main():
                 raise Exception(f'Failed to download zone files: {e}')
 
 
+def cli_entry():
+    '''Synchronous entry point for console script'''
+    return asyncio.run(main())
+
 
 if __name__ == '__main__':
     asyncio.run(main()) 

@@ -11,7 +11,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setup(
 	name='czds-api',
-	version='1.2.0',
+	version='1.2.1',
 	author='acidvegas',
 	author_email='acid.vegas@acid.vegas',
 	description='ICANN API for the Centralized Zones Data Service',
@@ -43,7 +43,7 @@ setup(
 	python_requires='>=3.6',
 	entry_points={
 		'console_scripts': [
-			'czds=czds.__main__:main',
+			'czds=czds.__main__:cli_entry',
 		],
 	},
 	install_requires=[
