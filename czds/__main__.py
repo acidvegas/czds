@@ -21,20 +21,20 @@ async def main():
     # Authentication
     parser.add_argument('-u', '--username', default=os.getenv('CZDS_USER'), help='ICANN Username')
     parser.add_argument('-p', '--password', default=os.getenv('CZDS_PASS'), help='ICANN Password')
+    parser.add_argument('-o', '--output',   default=os.getcwd(),            help='Output directory')
     
     # Zone download options
-    parser.add_argument('-z', '--zones', action='store_true', help='Download zone files')
-    parser.add_argument('-c', '--concurrency', type=int, default=3, help='Number of concurrent downloads')
-    parser.add_argument('-d', '--decompress', action='store_true', help='Decompress zone files after download')
-    parser.add_argument('-k', '--keep', action='store_true', help='Keep the original gzip files after decompression')
+    zone_group = parser.add_argument_group('Zone download options')
+    zone_group.add_argument('-z', '--zones', action='store_true', help='Download zone files')
+    zone_group.add_argument('-c', '--concurrency', type=int, default=3, help='Number of concurrent downloads')
+    zone_group.add_argument('-d', '--decompress', action='store_true', help='Decompress zone files after download')
+    zone_group.add_argument('-k', '--keep', action='store_true', help='Keep the original gzip files after decompression')
 
     # Report options
-    parser.add_argument('-r', '--report', action='store_true', help='Download the zone stats report')
-    parser.add_argument('-s', '--scrub', action='store_true', help='Scrub the username from the report')
-    parser.add_argument('-f', '--format', choices=['csv', 'json'], default='csv', help='Report output format')
-
-    # Output options
-    parser.add_argument('-o', '--output', default=os.getcwd(), help='Output directory')
+    report_group = parser.add_argument_group('Report options')
+    report_group.add_argument('-r', '--report', action='store_true', help='Download the zone stats report')
+    report_group.add_argument('-s', '--scrub', action='store_true', help='Scrub the username from the report')
+    report_group.add_argument('-f', '--format', choices=['csv', 'json'], default='csv', help='Report output format')
 
     # Parse arguments
     args = parser.parse_args()
@@ -66,14 +66,11 @@ async def main():
         
         # Download zone files if requested
         if args.zones:
-            logging.info('Fetching zone links...')
+            logging.info('Downloading zone files...')
             try:
-                zone_links = await client.fetch_zone_links()
+                await client.download_zones(output_directory, args.concurrency, decompress=args.decompress, cleanup=not args.keep)
             except Exception as e:
-                raise Exception(f'Failed to fetch zone links: {e}')
-
-            logging.info(f'Downloading {len(zone_links):,} zone files...')
-            await client.download_zones(zone_links, output_directory, args.concurrency, decompress=args.decompress, cleanup=not args.keep)
+                raise Exception(f'Failed to download zone files: {e}')
 
 
 

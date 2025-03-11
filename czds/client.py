@@ -175,11 +175,10 @@ class CZDS:
             return await _download()
 
 
-    async def download_zones(self, zone_links: list, output_directory: str, concurrency: int, decompress: bool = False, cleanup: bool = True):
+    async def download_zones(self, output_directory: str, concurrency: int, decompress: bool = False, cleanup: bool = True):
         '''
         Download multiple zone files concurrently
         
-        :param zone_links: List of zone URLs to download
         :param output_directory: Directory to save the zone files
         :param concurrency: Number of concurrent downloads
         :param decompress: Whether to decompress the gzip files after download
@@ -188,7 +187,8 @@ class CZDS:
 
         os.makedirs(output_directory, exist_ok=True)
 
-        semaphore = asyncio.Semaphore(concurrency)
-        tasks     = [self.download_zone(url, output_directory, decompress, cleanup, semaphore) for url in zone_links]
+        semaphore  = asyncio.Semaphore(concurrency)
+        zone_links = await self.fetch_zone_links()
+        tasks      = [self.download_zone(url, output_directory, decompress, cleanup, semaphore) for url in zone_links]
 
         await asyncio.gather(*tasks)

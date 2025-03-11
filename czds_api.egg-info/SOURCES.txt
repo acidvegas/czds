@@ -8,4 +8,5 @@ czds_api.egg-info/PKG-INFO
 czds_api.egg-info/SOURCES.txt
 czds_api.egg-info/dependency_links.txt
 czds_api.egg-info/entry_points.txt
+czds_api.egg-info/requires.txt
 czds_api.egg-info/top_level.txt

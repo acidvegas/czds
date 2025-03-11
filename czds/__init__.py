@@ -5,7 +5,7 @@
 from .client import CZDS
 
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 __author__  = 'acidvegas'
 __email__   = 'acid.vegas@acid.vegas'
 __github__  = 'https://github.com/acidvegas/czds'
