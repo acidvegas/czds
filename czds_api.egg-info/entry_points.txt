@@ -1,2 +1,0 @@
-[console_scripts]
-czds = czds.__main__:cli_entry
