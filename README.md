@@ -28,19 +28,24 @@ czds [-h] [-u USERNAME] [-p PASSWORD] [-z] [-c CONCURRENCY] [-d] [-k] [-r] [-s] 
 ```
 
 #### Arguments
+###### Basic Options
 | Argument              | Description                                  | Default           |
 |-----------------------|----------------------------------------------|-------------------|
 | `-h`, `--help`        | Show help message and exit                   |                   |
 | `-u`, `--username`    | ICANN Username                               | `$CZDS_USER`      |
 | `-p`, `--password`    | ICANN Password                               | `$CZDS_PASS`      |
+| `-o`, `--output`      | Output directory                             | Current directory |
+
+###### Zone Options
 | `-z`, `--zones`       | Download zone files                          |                   |
 | `-c`, `--concurrency` | Number of concurrent downloads               | `3`               |
 | `-d`, `--decompress`  | Decompress zone files after download         |                   |
 | `-k`, `--keep`        | Keep original gzip files after decompression |                   |
+
+###### Report Options
 | `-r`, `--report`      | Download the zone stats report               |                   |
 | `-s`, `--scrub`       | Scrub username from the report               |                   |
 | `-f`, `--format`      | Report output format (csv/json)              | `csv`             |
-| `-o`, `--output`      | Output directory                             | Current directory |
 
 ### Environment Variables
 ```bash
