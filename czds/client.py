@@ -7,7 +7,6 @@ import gzip
 import logging
 import os
 
-
 try:
     import aiohttp
 except ImportError:
@@ -20,10 +19,7 @@ except ImportError:
 
 
 # Configure logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 
 class CZDS:
@@ -36,25 +32,17 @@ class CZDS:
         :param username: ICANN Username
         :param password: ICANN Password
         '''
-
+        
         self.username = username
         self.password = password
-        self.headers  = None # Store the authorization header for reuse
-        self.session  = None # Store the client session for reuse
+        self.session  = aiohttp.ClientSession()
+        self.headers  = None
+
         logging.info('Initialized CZDS client')
 
 
-    async def __aenter__(self):
-        '''Async context manager entry'''
-
-        self.session = aiohttp.ClientSession()
-        self.headers = {'Authorization': f'Bearer {await self.authenticate()}'}
-        logging.debug('Entered async context')
-        return self
-
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        '''Async context manager exit'''
+    async def close(self):
+        '''Close the client session'''
 
         if self.session:
             await self.session.close()
@@ -86,6 +74,7 @@ class CZDS:
 
     async def fetch_zone_links(self) -> list:
         '''Fetch the list of zone files available for download'''
+
         logging.info('Fetching zone links')
         async with self.session.get('https://czds-api.icann.org/czds/downloads/links', headers=self.headers) as response:
             if response.status != 200:
@@ -105,8 +94,8 @@ class CZDS:
         :param filepath: Filepath to save the scrubbed report
         :param scrub: Whether to scrub the username from the report
         :param format: Output format ('csv' or 'json')
-        :return: Report content as CSV string or JSON dict
         '''
+
         logging.info('Downloading zone stats report')
         async with self.session.get('https://czds-api.icann.org/czds/requests/report', headers=self.headers) as response:
             if response.status != 200:
@@ -145,6 +134,7 @@ class CZDS:
         :param filepath: Path to the gzip file
         :param cleanup: Whether to remove the original gzip file after decompression
         '''
+
         logging.debug(f'Decompressing {filepath}')
         output_path = filepath[:-3] # Remove .gz extension
         
@@ -169,16 +159,19 @@ class CZDS:
         :param cleanup: Whether to remove the original gzip file after decompression
         :param semaphore: Optional semaphore for controlling concurrency
         '''
+        
         async def _download():
-            logging.debug(f'Downloading zone file from {url}')
+            tld = url.split('/')[-1].split('.')[0]  # Extract TLD from URL
+            logging.info(f'Starting download of {tld} zone file')
+            
             async with self.session.get(url, headers=self.headers) as response:
                 if response.status != 200:
-                    error_msg = f'Failed to download {url}: {response.status} {await response.text()}'
+                    error_msg = f'Failed to download {tld}: {response.status} {await response.text()}'
                     logging.error(error_msg)
                     raise Exception(error_msg)
 
                 if not (content_disposition := response.headers.get('Content-Disposition')):
-                    error_msg = 'Missing Content-Disposition header'
+                    error_msg = f'Missing Content-Disposition header for {tld}'
                     logging.error(error_msg)
                     raise ValueError(error_msg)
 
@@ -186,16 +179,21 @@ class CZDS:
                 filepath = os.path.join(output_directory, filename)
 
                 async with aiofiles.open(filepath, 'wb') as file:
+                    total_size = 0
                     while True:
                         chunk = await response.content.read(8192)
                         if not chunk:
                             break
                         await file.write(chunk)
-                    logging.info(f'Successfully downloaded {filename}')
+                        total_size += len(chunk)
+                    
+                    size_mb = total_size / (1024 * 1024)
+                    logging.info(f'Successfully downloaded {tld} zone file ({size_mb:.2f} MB)')
 
                 if decompress:
                     await self.gzip_decompress(filepath, cleanup)
-                    filepath = filepath[:-3] # Remove .gz extension
+                    filepath = filepath[:-3]  # Remove .gz extension
+                    logging.info(f'Decompressed {tld} zone file')
 
                 return filepath
 
@@ -215,12 +213,22 @@ class CZDS:
         :param decompress: Whether to decompress the gzip files after download
         :param cleanup: Whether to remove the original gzip files after decompression
         '''
+        
+        # Create the output directory if it doesn't exist
         os.makedirs(output_directory, exist_ok=True)
+        
         logging.info(f'Starting concurrent download of zones with concurrency={concurrency}')
 
-        semaphore  = asyncio.Semaphore(concurrency)
+        # Get the zone links
         zone_links = await self.fetch_zone_links()
-        tasks      = [self.download_zone(url, output_directory, decompress, cleanup, semaphore) for url in zone_links]
 
+        # Create a semaphore to limit the number of concurrent downloads
+        semaphore = asyncio.Semaphore(concurrency)
+
+        # Create a list of tasks to download the zone files
+        tasks = [self.download_zone(url, output_directory, decompress, cleanup, semaphore) for url in zone_links]
+
+        # Run the tasks concurrently
         await asyncio.gather(*tasks)
+
         logging.info('Completed downloading all zone files')
