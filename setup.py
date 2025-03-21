@@ -11,7 +11,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setup(
 	name='czds-api',
-	version='1.2.1',
+	version='1.2.2',
 	author='acidvegas',
 	author_email='acid.vegas@acid.vegas',
 	description='ICANN API for the Centralized Zones Data Service',
