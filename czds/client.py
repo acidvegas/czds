@@ -149,19 +149,17 @@ class CZDS:
         '''
 
         logging.debug(f'Decompressing {filepath}')
-        output_path = filepath[:-3] # Remove .gz extension
+        output_path = filepath[:-3]  # Remove .gz extension
+        chunk_size = 1024 * 1024  # 1MB chunks
         
         try:
-            async with aiofiles.open(filepath, 'rb') as f_in:
-                content = await f_in.read()
-                
-                # Use BytesIO to handle the content as a file-like object
-                with io.BytesIO(content) as bytes_io:
-                    with gzip.GzipFile(fileobj=bytes_io, mode='rb') as gz:
-                        decompressed_content = gz.read()
-                        
-            async with aiofiles.open(output_path, 'wb') as f_out:
-                await f_out.write(decompressed_content)
+            with gzip.open(filepath, 'rb') as gz:
+                async with aiofiles.open(output_path, 'wb') as f_out:
+                    while True:
+                        chunk = gz.read(chunk_size)
+                        if not chunk:
+                            break
+                        await f_out.write(chunk)
         
             if cleanup:
                 os.remove(filepath)
