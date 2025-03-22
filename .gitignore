@@ -5,3 +5,4 @@ logs/*
 .log. 
 *.egg-info
 dist/
+zones/

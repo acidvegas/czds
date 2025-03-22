@@ -40,6 +40,14 @@ class CZDS:
 
         logging.info('Initialized CZDS client')
 
+    async def __aenter__(self):
+        '''Async context manager entry'''
+        await self.authenticate()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        '''Async context manager exit'''
+        await self.close()
 
     async def close(self):
         '''Close the client session'''
