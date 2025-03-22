@@ -64,6 +64,7 @@ class CZDS:
 
                 result = await response.json()
                 logging.info('Successfully authenticated with ICANN API')
+                self.headers = {'Authorization': f'Bearer {result["accessToken"]}'}
                 return result['accessToken']
 
         except Exception as e:
@@ -83,7 +84,7 @@ class CZDS:
                 raise Exception(error_msg)
 
             links = await response.json()
-            logging.info(f'Successfully fetched {len(links)} zone links')
+            logging.info(f'Successfully fetched {len(links):,} zone links')
             return links
 
 
