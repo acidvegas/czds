@@ -6,6 +6,7 @@ import asyncio
 import gzip
 import logging
 import os
+import io
 
 try:
     import aiohttp
@@ -147,15 +148,29 @@ class CZDS:
         logging.debug(f'Decompressing {filepath}')
         output_path = filepath[:-3] # Remove .gz extension
         
-        async with aiofiles.open(filepath, 'rb') as f_in:
-            content = await f_in.read()
-            with gzip.open(content, 'rb') as gz:
-                async with aiofiles.open(output_path, 'wb') as f_out:
-                    await f_out.write(gz.read())
+        try:
+            async with aiofiles.open(filepath, 'rb') as f_in:
+                content = await f_in.read()
+                
+                # Use BytesIO to handle the content as a file-like object
+                with io.BytesIO(content) as bytes_io:
+                    with gzip.GzipFile(fileobj=bytes_io, mode='rb') as gz:
+                        decompressed_content = gz.read()
+                        
+            async with aiofiles.open(output_path, 'wb') as f_out:
+                await f_out.write(decompressed_content)
         
-        if cleanup:
-            os.remove(filepath)
-            logging.debug(f'Removed original gzip file: {filepath}')
+            if cleanup:
+                os.remove(filepath)
+                logging.debug(f'Removed original gzip file: {filepath}')
+            
+        except Exception as e:
+            error_msg = f'Failed to decompress {filepath}: {str(e)}'
+            logging.error(error_msg)
+            # Clean up any partial files
+            if os.path.exists(output_path):
+                os.remove(output_path)
+            raise Exception(error_msg)
 
 
     async def download_zone(self, url: str, output_directory: str, decompress: bool = False, cleanup: bool = True, semaphore: asyncio.Semaphore = None):
