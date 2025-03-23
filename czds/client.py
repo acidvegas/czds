@@ -171,7 +171,7 @@ class CZDS:
             tld_name    = url.split('/')[-1].split('.')[0] # Extract TLD from URL
             max_retries = 10                               # Maximum number of retries for failed downloads
             retry_delay = 5                                # Delay between retries in seconds
-            timeout     = aiohttp.ClientTimeout(total=120) # Timeout for the download
+            timeout     = aiohttp.ClientTimeout(total=None, connect=60, sock_connect=60, sock_read=None)
             
             # Start the attempt loop
             for attempt in range(max_retries):
@@ -219,7 +219,7 @@ class CZDS:
                                         await file.write(chunk)
                                         total_size += len(chunk)
                                         pbar.update(len(chunk))
-                                except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+                                except Exception as e:
                                     logging.error(f'Connection error while downloading {tld_name}: {str(e)}')
                                     if attempt + 1 < max_retries:
                                         logging.info(f'Retrying {tld_name} in {retry_delay} seconds...')
@@ -246,7 +246,7 @@ class CZDS:
 
                         return filepath
 
-                except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                except Exception as e:
                     if attempt + 1 >= max_retries:
                         logging.error(f'Failed to download {tld_name} after {max_retries} attempts: {str(e)}')
                         if 'filepath' in locals() and os.path.exists(filepath):
@@ -254,12 +254,6 @@ class CZDS:
                         raise
                     logging.warning(f'Download attempt {attempt + 1} failed for {tld_name}: {str(e)}')
                     await asyncio.sleep(retry_delay)
-
-                except Exception as e:
-                    logging.error(f'Error downloading {tld_name}: {str(e)}')
-                    if 'filepath' in locals() and os.path.exists(filepath):
-                        os.remove(filepath)
-                    raise
 
         async with semaphore:
             return await _download()
