@@ -2,6 +2,7 @@
 # ICANN API for the Centralized Zones Data Service - developed by acidvegas (https://git.acid.vegas/czds)
 # czds/utils.py
 
+import asyncio
 import gzip
 import logging
 import os
@@ -24,55 +25,30 @@ async def gzip_decompress(filepath: str, cleanup: bool = True):
     :param filepath: Path to the gzip file
     :param cleanup: Whether to remove the original gzip file after decompressions
     '''
-
-    # Get the original size of the file
     original_size = os.path.getsize(filepath)
-
+    output_path = filepath[:-3]
+    
     logging.debug(f'Decompressing {filepath} ({humanize_bytes(original_size)})...')
 
-    # Remove the .gz extension
-    output_path = filepath[:-3]
+    # Use a large chunk size (256MB) for maximum throughput
+    chunk_size = 256 * 1024 * 1024
 
-    # Set the chunk size to 25MB
-    chunk_size = 100 * 1024 * 1024
-
-    # Use a decompression object for better memory efficiency
-    decompressor = gzip.decompressobj()
-    
-    # Create progress bar
+    # Run the actual decompression in a thread pool to prevent blocking
     with tqdm(total=original_size, unit='B', unit_scale=True, desc=f'Decompressing {os.path.basename(filepath)}', leave=False) as pbar:
-        # Open the input and output files
-        async with aiofiles.open(filepath, 'rb') as f_in:
-            async with aiofiles.open(output_path, 'wb') as f_out:
+        async with aiofiles.open(output_path, 'wb') as f_out:
+            # Run gzip decompression in thread pool since it's CPU-bound
+            loop = asyncio.get_event_loop()
+            with gzip.open(filepath, 'rb') as gz:
                 while True:
-                    # Read compressed chunk
-                    chunk = await f_in.read(chunk_size)
-
-                    # If the chunk is empty, break
+                    chunk = await loop.run_in_executor(None, gz.read, chunk_size)
                     if not chunk:
                         break
-                    
-                    # Decompress chunk
-                    decompressed = decompressor.decompress(chunk)
-
-                    # If the decompressed chunk is not empty, write it to the output file
-                    if decompressed:
-                        await f_out.write(decompressed)
-                    
-                    # Update the progress bar
+                    await f_out.write(chunk)
                     pbar.update(len(chunk))
-                
-                # Write any remaining data
-                remaining = decompressor.flush()
-                if remaining:
-                    await f_out.write(remaining)
 
-    # Get the decompressed size of the file
     decompressed_size = os.path.getsize(output_path)
-
     logging.debug(f'Decompressed {filepath} ({humanize_bytes(decompressed_size)})')
 
-    # If the cleanup flag is set, remove the original gzip file
     if cleanup:
         os.remove(filepath)
         logging.debug(f'Removed original gzip file: {filepath}')
