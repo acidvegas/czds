@@ -182,14 +182,14 @@ class CZDS:
         
         async def _download():
             tld_name    = url.split('/')[-1].split('.')[0] # Extract TLD from URL
-            max_retries = 10                               # Maximum number of retries for failed downloads
+            max_retries = 20                               # Maximum number of retries for failed downloads
             retry_delay = 5                                # Delay between retries in seconds
             
             # Headers for better connection stability
             download_headers = {
                 **self.headers,
                 'Connection': 'keep-alive',
-                'Keep-Alive': 'timeout=600',  # 10 minutes
+                'Keep-Alive': 'timeout=600', # 10 minutes
                 'Accept-Encoding': 'gzip'
             }
 
