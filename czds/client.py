@@ -44,8 +44,21 @@ class CZDS:
         self.username = username
         self.password = password
 
-        # Set the session with longer timeouts
-        self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=None, connect=60, sock_connect=60, sock_read=60))
+        # Configure TCP keepalive
+        connector = aiohttp.TCPConnector(
+            keepalive_timeout=300,     # Keep connections alive for 5 minutes
+            force_close=False,         # Don't force close connections
+            enable_cleanup_closed=True, # Cleanup closed connections
+            ttl_dns_cache=300,         # Cache DNS results for 5 minutes
+        )
+
+        # Set the session with longer timeouts and keepalive
+        self.session = aiohttp.ClientSession(
+            connector=connector,
+            timeout=aiohttp.ClientTimeout(total=None, connect=60, sock_connect=60, sock_read=None),
+            headers={'Connection': 'keep-alive'},
+            raise_for_status=True
+        )
 
         # Placeholder for the headers after authentication
         self.headers = None
@@ -171,15 +184,22 @@ class CZDS:
             tld_name    = url.split('/')[-1].split('.')[0] # Extract TLD from URL
             max_retries = 10                               # Maximum number of retries for failed downloads
             retry_delay = 5                                # Delay between retries in seconds
-            timeout     = aiohttp.ClientTimeout(total=None, connect=60, sock_connect=60, sock_read=None)
             
+            # Headers for better connection stability
+            download_headers = {
+                **self.headers,
+                'Connection': 'keep-alive',
+                'Keep-Alive': 'timeout=600',  # 10 minutes
+                'Accept-Encoding': 'gzip'
+            }
+
             # Start the attempt loop
             for attempt in range(max_retries):
                 try:
                     logging.info(f'Starting download of {tld_name} zone file{" (attempt " + str(attempt + 1) + ")" if attempt > 0 else ""}')
 
                     # Send the request to the API
-                    async with self.session.get(url, headers=self.headers, timeout=timeout) as response:
+                    async with self.session.get(url, headers=download_headers) as response:
                         # Check if the request was successful
                         if response.status != 200:
                             logging.error(f'Failed to download {tld_name}: {response.status} {await response.text()}')

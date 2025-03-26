@@ -39,8 +39,6 @@ czds [-h] [-u USERNAME] [-p PASSWORD] [-z] [-c CONCURRENCY] [-d] [-k] [-r] [-s] 
 ###### Zone Options
 | `-z`, `--zones`       | Download zone files                          |                   |
 | `-c`, `--concurrency` | Number of concurrent downloads               | `3`               |
-| `-d`, `--decompress`  | Decompress zone files after download         |                   |
-| `-k`, `--keep`        | Keep original gzip files after decompression |                   |
 
 ###### Report Options
 | `-r`, `--report`      | Download the zone stats report               |                   |
