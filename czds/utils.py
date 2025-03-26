@@ -34,24 +34,38 @@ async def gzip_decompress(filepath: str, cleanup: bool = True):
     output_path = filepath[:-3]
 
     # Set the chunk size to 25MB
-    chunk_size = 25 * 1024 * 1024
+    chunk_size = 100 * 1024 * 1024
 
-    # Create progress bar for decompression
+    # Use a decompression object for better memory efficiency
+    decompressor = gzip.decompressobj()
+    
+    # Create progress bar
     with tqdm(total=original_size, unit='B', unit_scale=True, desc=f'Decompressing {os.path.basename(filepath)}', leave=False) as pbar:
-        # Decompress the file
-        with gzip.open(filepath, 'rb') as gz:
+        # Open the input and output files
+        async with aiofiles.open(filepath, 'rb') as f_in:
             async with aiofiles.open(output_path, 'wb') as f_out:
                 while True:
-                    # Read the next chunk
-                    chunk = gz.read(chunk_size)
+                    # Read compressed chunk
+                    chunk = await f_in.read(chunk_size)
 
                     # If the chunk is empty, break
                     if not chunk:
                         break
+                    
+                    # Decompress chunk
+                    decompressed = decompressor.decompress(chunk)
 
-                    # Write the chunk to the output file
-                    await f_out.write(chunk)
+                    # If the decompressed chunk is not empty, write it to the output file
+                    if decompressed:
+                        await f_out.write(decompressed)
+                    
+                    # Update the progress bar
                     pbar.update(len(chunk))
+                
+                # Write any remaining data
+                remaining = decompressor.flush()
+                if remaining:
+                    await f_out.write(remaining)
 
     # Get the decompressed size of the file
     decompressed_size = os.path.getsize(output_path)
