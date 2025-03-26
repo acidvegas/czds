@@ -6,6 +6,8 @@ import asyncio
 import json
 import logging
 import os
+import csv
+import io
 
 try:
     import aiohttp
@@ -138,15 +140,12 @@ class CZDS:
         Downloads the zone report stats from the API and scrubs the report for privacy
         
         :param filepath: Filepath to save the scrubbed report
-        :param scrub: Whether to scrub the username from the report
         :param format: Output format ('csv' or 'json')
         '''
-
         logging.info('Downloading zone stats report')
 
         # Send the request to the API
         async with self.session.get('https://czds-api.icann.org/czds/requests/report', headers=self.headers) as response:
-            # Check if the request was successful
             if response.status != 200:
                 raise Exception(f'Failed to download the zone stats report: {response.status} {await response.text()}')
 
@@ -157,9 +156,21 @@ class CZDS:
             content = content.replace(self.username, 'nobody@no.name')
             logging.debug('Scrubbed username from report')
 
-            # Convert the report to JSON format if requested (default is CSV)
+            # Convert the report to JSON format if requested
             if format.lower() == 'json':
-                content = json.dumps(content, indent=4)
+                # Parse CSV content
+                csv_reader = csv.DictReader(io.StringIO(content))
+                
+                # Convert to list of dicts with formatted keys
+                json_data = []
+                for row in csv_reader:
+                    formatted_row = {
+                        key.lower().replace(' ', '_'): value 
+                        for key, value in row.items()
+                    }
+                    json_data.append(formatted_row)
+                
+                content = json.dumps(json_data, indent=4)
                 logging.debug('Converted report to JSON format')
 
             # Save the report to a file if a filepath is provided
