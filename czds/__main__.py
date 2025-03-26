@@ -10,11 +10,6 @@ import os
 
 from .client import CZDS
 
-from dotenv import load_dotenv
-
-
-load_dotenv()
-
 
 async def main():
     '''Entry point for the command line interface'''

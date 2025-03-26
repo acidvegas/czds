@@ -51,8 +51,6 @@ async def gzip_decompress(filepath: str, cleanup: bool = True):
 
                     # Write the chunk to the output file
                     await f_out.write(chunk)
-
-                    # Update the progress bar
                     pbar.update(len(chunk))
 
     # Get the decompressed size of the file
