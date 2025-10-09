@@ -21,11 +21,13 @@ async def main():
     parser.add_argument('-u', '--username', default=os.getenv('CZDS_USER'), help='ICANN Username')
     parser.add_argument('-p', '--password', default=os.getenv('CZDS_PASS'), help='ICANN Password')
     parser.add_argument('-o', '--output', default=os.getcwd(), help='Output directory')
-    
+
     # Zone download options
     zone_group = parser.add_argument_group('Zone download options')
     zone_group.add_argument('-z', '--zones', action='store_true', help='Download zone files')
     zone_group.add_argument('-c', '--concurrency', type=int, default=3, help='Number of concurrent downloads')
+    zone_group.add_argument('--skip-tlds', type=str, help='Comma-separated list of TLDs to skip (e.g., com,net,org)')
+    zone_group.add_argument('--skip-file', type=str, help='Path to file containing TLDs to skip (one per line)')
 
     # Report options
     report_group = parser.add_argument_group('Report options')
@@ -66,13 +68,27 @@ async def main():
                 return
             except Exception as e:
                 raise Exception(f'Failed to download zone stats report: {e}')
-        
+
         # Download zone files if requested
         if args.zones:
             logging.info('Downloading zone files...')
+            # Build the skip list
+            skip_tlds = set()
+            if args.skip_tlds:
+                skip_tlds.update([tld.strip().lower() for tld in args.skip_tlds.split(',')])
+            if args.skip_file:
+                try:
+                    with open(args.skip_file, 'r') as f:
+                        skip_tlds.update([line.strip().lower() for line in f if line.strip()])
+                except FileNotFoundError:
+                    logging.warning(f'Skip file {args.skip_file} not found, ignoring...')
+
+            if skip_tlds:
+                logging.info(f'Skipping TLDs: {", ".join(sorted(skip_tlds))}')
+
             try:
                 # Download the zone files
-                await client.download_zones(output_directory, args.concurrency)
+                await client.download_zones(output_directory, args.concurrency, skip_tlds=skip_tlds)
             except Exception as e:
                 raise Exception(f'Failed to download zone files: {e}')
 

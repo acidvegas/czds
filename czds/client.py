@@ -160,16 +160,16 @@ class CZDS:
             if format.lower() == 'json':
                 # Parse CSV content
                 csv_reader = csv.DictReader(io.StringIO(content))
-                
+
                 # Convert to list of dicts with formatted keys
                 json_data = []
                 for row in csv_reader:
                     formatted_row = {
-                        key.lower().replace(' ', '_'): value 
+                        key.lower().replace(' ', '_'): value
                         for key, value in row.items()
                     }
                     json_data.append(formatted_row)
-                
+
                 content = json.dumps(json_data, indent=4)
                 logging.debug('Converted report to JSON format')
 
@@ -190,12 +190,12 @@ class CZDS:
         :param output_directory: Directory to save the zone file
         :param semaphore: Optional semaphore for controlling concurrency
         '''
-        
+
         async def _download():
             tld_name    = url.split('/')[-1].split('.')[0] # Extract TLD from URL
             max_retries = 20                               # Maximum number of retries for failed downloads
             retry_delay = 5                                # Delay between retries in seconds
-            
+
             # Headers for better connection stability
             download_headers = {
                 **self.headers,
@@ -268,7 +268,7 @@ class CZDS:
                                 await asyncio.sleep(retry_delay)
                                 continue
                             raise Exception(error_msg)
-                        
+
                         logging.info(f'Successfully downloaded {tld_name} zone file ({humanize_bytes(total_size)})')
 
                         await gzip_decompress(filepath)
@@ -290,30 +290,43 @@ class CZDS:
             return await _download()
 
 
-    async def download_zones(self, output_directory: str, concurrency: int):
+    async def download_zones(self, output_directory: str, concurrency: int, skip_tlds: set = None):
         '''
         Download multiple zone files concurrently
-        
+
         :param output_directory: Directory to save the zone files
         :param concurrency: Number of concurrent downloads
+        :param skip_tlds: A set of TLDs to exclude from download
         '''
-        
+
         # Create the output directory if it doesn't exist
         os.makedirs(output_directory, exist_ok=True)
-        
+
+        if skip_tlds is None:
+            skip_tlds = set()
+
         # Get the zone links
         zone_links = await self.fetch_zone_links()
-        zone_links.sort() # Sort the zone alphabetically for better tracking
+        zone_links.sort()  # Sort the zone alphabetically for better tracking
+
+        # Filter out skipped TLDs
+        filtered_zone_links = []
+        for url in zone_links:
+            tld = url.split('/')[-1].replace('.zone', '').lower()
+            if tld not in skip_tlds:
+                filtered_zone_links.append(url)
+            else:
+                logging.info(f'Skipping {tld}...')
 
         # Create a semaphore to limit the number of concurrent downloads
         semaphore = asyncio.Semaphore(concurrency)
 
-        logging.info(f'Downloading {len(zone_links):,} zone files...')
+        logging.info(f'Downloading {len(filtered_zone_links):,} zone files...')
 
         # Create a list of tasks to download the zone files
-        tasks = [self.download_zone(url, output_directory, semaphore) for url in zone_links]
+        tasks = [self.download_zone(url, output_directory, semaphore) for url in filtered_zone_links]
 
         # Run the tasks concurrently
         await asyncio.gather(*tasks)
 
-        logging.info(f'Completed downloading {len(zone_links):,} zone files')
+        logging.info(f'Completed downloading {len(filtered_zone_links):,} zone files')

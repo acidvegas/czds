@@ -6,3 +6,5 @@ logs/*
 *.egg-info
 dist/
 zones/
+.idea
+build/

@@ -39,6 +39,8 @@ czds [-h] [-u USERNAME] [-p PASSWORD] [-z] [-c CONCURRENCY] [-d] [-k] [-r] [-s] 
 ###### Zone Options
 | `-z`, `--zones`       | Download zone files                          |                   |
 | `-c`, `--concurrency` | Number of concurrent downloads               | `3`               |
+| `--skip-tlds`         | Comma-separated list of TLDs to skip         |                   |
+| `--skip-file`         | Path to file with TLDs to skip (one per line)|                   |
 
 ###### Report Options
 | `-r`, `--report`      | Download the zone stats report               |                   |
