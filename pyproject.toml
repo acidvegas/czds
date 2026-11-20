@@ -35,6 +35,7 @@ dependencies = [
 [project.urls]
 'Bug Tracker'   = 'https://github.com/acidvegas/czds/issues'
 'Documentation' = 'https://github.com/acidvegas/czds#readme'
+'Homepage'      = 'https://github.com/acidvegas/czds'
 'Source Code'   = 'https://github.com/acidvegas/czds'
 
 [project.scripts]
