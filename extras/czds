@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # ICANN API for the Centralized Zones Data Service - developed by acidvegas (https://git.acid.vegas/czds)
 # Reference: https://czds.icann.org
 
@@ -12,56 +12,108 @@ now=$(date +"%Y-%m-%d")
 output="zonefiles/$now"
 
 # Get username and password (interactive if not set by environment variables)
-username=${CZDS_USER:-$(read -p  "ICANN Username: " user && echo "$user")}
-password=${CZDS_PASS:-$(read -sp "ICANN Password: " pass && echo "$pass")}
+username="$CZDS_USER"
+password="$CZDS_PASS"
 
-echo "Authenticating as $username..."
+if [ -z "$username" ]; then
+	printf 'ICANN Username: '
+	read -r username
+fi
 
-# Make an authentication request
-response=$(curl -s -X POST "https://account-api.icann.org/api/authenticate" \
-	-H "Content-Type: application/json" \
-	-H "Accept: application/json" \
-	-d "{\"username\":\"$username\",\"password\":\"$password\"}")
+if [ -z "$password" ]; then
+	printf 'ICANN Password: '
+	stty -echo
+	read -r password
+	stty echo
+	echo
+fi
 
-# Extract and return the access access_token
-access_token=$(echo "$response" | grep -o '"accessToken":"[^"]*' | cut -d '"' -f 4)
+# Escape backslashes and double quotes for the JSON body
+json_escape() {
+	printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+# Authenticate and set access_token (the credentials go through stdin so they never show up in ps)
+authenticate() {
+	response=$(printf '{"username":"%s","password":"%s"}' "$(json_escape "$username")" "$(json_escape "$password")" | curl -s -X POST "https://account-api.icann.org/api/authenticate" \
+		-H "Content-Type: application/json" \
+		-H "Accept: application/json" \
+		-d @-)
+
+	access_token=$(printf '%s\n' "$response" | sed -n 's/.*"accessToken" *: *"\([^"]*\)".*/\1/p')
+
+	[ -n "$access_token" ]
+}
+
+# Make an authenticated GET request, saving the body to $2 and setting status to the HTTP status code
+# Not called in a subshell so a refreshed access_token persists for later requests
+# The token goes through a curl config on stdin so it never shows up in ps
+# The token expires after 24 hours, so on a 401 re-authenticate once and retry
+api_get() {
+	for attempt in 1 2; do
+		status=$(printf 'header = "Authorization: Bearer %s"\n' "$access_token" | curl -K - --progress-bar -w '%{http_code}' -o "$2" "$1")
+
+		if [ "$status" = "401" ] && [ "$attempt" = "1" ]; then
+			echo "Access token expired, re-authenticating..." >&2
+			authenticate || { echo "error: re-authentication failed" >&2; exit 1; }
+		else
+			break
+		fi
+	done
+}
+
+echo "Authenticating..."
 
 # Check if authentication was successful
-[ -z $access_token ] && echo "error: authentication failed" && exit 1
+authenticate || { echo "error: authentication failed"; exit 1; }
 
-echo "Authenticated successfully & recieved access_token $access_token"
+echo "Authenticated successfully"
 
 # Create output directory
-mkdir -p $output
+mkdir -p "$output"
 
 echo "Fetching zone report..."
 
-# Get your zone report stats from the API
-curl --progress-bar -o $output/.stats.csv -H "Authorization: Bearer $access_token" https://czds-api.icann.org/czds/requests/report
-
-echo "Scrubbing report for privacy..."
-
-# Redact username from report for privacy
-sed -i 's/$username/nobody@no.name/g' $output/report.csv
+# Get your zone report stats from the API and redact the username for privacy
+api_get https://czds-api.icann.org/czds/requests/report "$output/.stats.csv"
+if [ "$status" = "200" ]; then
+	echo "Scrubbing report for privacy..."
+	sed "s/$username/nobody@no.name/g" "$output/.stats.csv" > "$output/.stats.csv.tmp" && mv "$output/.stats.csv.tmp" "$output/.stats.csv"
+else
+	echo "error: failed to fetch zone report"
+	rm -f "$output/.stats.csv"
+fi
 
 echo "Fetching zone file links..."
 
 # Get the zone file links from the API
-zone_links=$(curl -s -H "Authorization: Bearer $access_token" https://czds-api.icann.org/czds/downloads/links | grep -o 'https://[^"]*')
+api_get https://czds-api.icann.org/czds/downloads/links "$output/.links.json"
+[ "$status" = "200" ] && zone_links=$(tr ',' '\n' < "$output/.links.json" | sed -n 's/.*"\(https:[^"]*\)".*/\1/p')
+rm -f "$output/.links.json"
+
+[ -z "$zone_links" ] && echo "error: failed to fetch zone file links" && exit 1
 
 # Download zone files
+failed=0
 for url in $zone_links; do
 	tld=$(basename "$url" .zone)
 
 	echo "Downloading $url..."
 
 	# Make the GET request and save the response to a file
-	curl --progress-bar -o $output/$tld.txt.gz -H "Authorization: Bearer $access_token" "$url"
+	api_get "$url" "$output/$tld.txt.gz"
+	if [ "$status" = "200" ]; then
+		echo "Downloaded $tld zone file to $output/$tld.txt.gz (extracting...)"
 
-	echo "Downloaded $tld zone file to zonefiles/$tld.txt.gz (extracting...)"
-
-	# Unzip the zone file
-	gunzip $output/$tld.txt.gz
+		# Unzip the zone file
+		gunzip "$output/$tld.txt.gz"
+	else
+		echo "error: failed to download $tld zone file"
+		rm -f "$output/$tld.txt.gz"
+		failed=$((failed + 1))
+	fi
 done
+
+[ "$failed" -gt 0 ] && echo "error: $failed zone files failed to download" && exit 1
 
 echo "All zone files downloaded."
