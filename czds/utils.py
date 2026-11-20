@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ICANN API for the Centralized Zones Data Service - developed by acidvegas (https://git.acid.vegas/czds)
-# czds/utils.py
+# czds/czds/utils.py
 
 import asyncio
 import gzip
@@ -8,50 +8,46 @@ import logging
 import os
 
 try:
-    import aiofiles
+	import aiofiles
 except ImportError:
-    raise ImportError('missing aiofiles library (pip install aiofiles)')
+	raise ImportError('missing aiofiles library (pip install aiofiles)') from None
 
 try:
-    from tqdm import tqdm
+	from tqdm import tqdm
 except ImportError:
-    raise ImportError('missing tqdm library (pip install tqdm)')
+	raise ImportError('missing tqdm library (pip install tqdm)') from None
 
 
-async def gzip_decompress(filepath: str, cleanup: bool = True):
-    '''
-    Decompress a gzip file in place
-    
-    :param filepath: Path to the gzip file
-    :param cleanup: Whether to remove the original gzip file after decompressions
-    '''
-    original_size = os.path.getsize(filepath)
-    output_path = filepath[:-3]
-    
-    logging.debug(f'Decompressing {filepath} ({humanize_bytes(original_size)})...')
+async def gzip_decompress(filepath: str):
+	'''
+	Decompress a gzip file in place
 
-    # Use a large chunk size (256MB) for maximum throughput
-    chunk_size = 256 * 1024 * 1024
+	:param filepath: Path to the gzip file
+	'''
 
-    # Run the actual decompression in a thread pool to prevent blocking
-    with tqdm(total=original_size, unit='B', unit_scale=True, desc=f'Decompressing {os.path.basename(filepath)}', leave=False) as pbar:
-        async with aiofiles.open(output_path, 'wb') as f_out:
-            # Run gzip decompression in thread pool since it's CPU-bound
-            loop = asyncio.get_event_loop()
-            with gzip.open(filepath, 'rb') as gz:
-                while True:
-                    chunk = await loop.run_in_executor(None, gz.read, chunk_size)
-                    if not chunk:
-                        break
-                    await f_out.write(chunk)
-                    pbar.update(len(chunk))
+	original_size = os.path.getsize(filepath)
+	output_path   = filepath.removesuffix('.gz')
 
-    decompressed_size = os.path.getsize(output_path)
-    logging.debug(f'Decompressed {filepath} ({humanize_bytes(decompressed_size)})')
+	logging.debug(f'Decompressing {filepath} ({humanize_bytes(original_size)})...')
 
-    if cleanup:
-        os.remove(filepath)
-        logging.debug(f'Removed original gzip file: {filepath}')
+	# Chunk size for reading the decompressed data (16MB)
+	chunk_size = 16 * 1024 * 1024
+
+	# Run gzip decompression in a thread pool since it's CPU-bound
+	loop = asyncio.get_running_loop()
+
+	# Progress is tracked by compressed bytes read so it matches the total
+	with tqdm(total=original_size, unit='B', unit_scale=True, desc=f'Decompressing {os.path.basename(filepath)}', leave=False) as pbar, open(filepath, 'rb') as raw, gzip.GzipFile(fileobj=raw) as gz:
+		async with aiofiles.open(output_path, 'wb') as f_out:
+			while chunk := await loop.run_in_executor(None, gz.read, chunk_size):
+				await f_out.write(chunk)
+				pbar.update(raw.tell() - pbar.n)
+
+	decompressed_size = os.path.getsize(output_path)
+	logging.debug(f'Decompressed {filepath} ({humanize_bytes(decompressed_size)})')
+
+	os.remove(filepath)
+	logging.debug(f'Removed original gzip file: {filepath}')
 
 
 def humanize_bytes(bytes: int) -> str:
