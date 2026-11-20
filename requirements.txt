@@ -1,3 +1,6 @@
-aiohttp
-aiofiles
+# ICANN API for the Centralized Zones Data Service - developed by acidvegas (https://git.acid.vegas/czds)
+# czds/requirements.txt
+
+aiohttp>=3.9.0
+aiofiles>=23.2.1
 tqdm
