@@ -100,10 +100,3 @@ asyncio.run(main())
 
 ## Respects & extras
 While ICANN does have an official [czds-api-client-python](https://github.com/icann/czds-api-client-python) repository, I rewrote it from scratch to be more streamline & included a [POSIX version](./extras/czds) for portability. There is some [official documentation](https://raw.githubusercontent.com/icann/czds-api-client-java/master/docs/ICANN_CZDS_api.pdf) that was referenced in the creation of the POSIX version. Either way, big props to ICANN for allowing me to use the CZDS for research purposes!
-
-___
-
-###### Mirrors for this repository: [acid.vegas](https://git.acid.vegas/czds) • [SuperNETs](https://git.supernets.org/acidvegas/czds) • [GitHub](https://github.com/acidvegas/czds) • [GitLab](https://gitlab.com/acidvegas/czds) • [Codeberg](https://codeberg.org/acidvegas/czds)
----
-
-###### Mirrors: [SuperNETs](https://git.supernets.org/acidvegas/) • [GitHub](https://github.com/acidvegas/) • [GitLab](https://gitlab.com/acidvegas/) • [Codeberg](https://codeberg.org/acidvegas/)
